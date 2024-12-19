@@ -21,18 +21,33 @@ def is_valid_email(email):
 def is_valid_contact_number(contact_number):
     return contact_number.isdigit() and len(contact_number) == 10
 
+# Function to save data to Google Sheets
+def save_to_google_sheets(data):
+    client = connect_to_google_sheets()
+    if st.session_state.center == "KOLKATA":
+        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
+    else:
+        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
+
+    # Append each row to the Google Sheet
+    for _, row in data.iterrows():
+        sheet.append_row(row.values.tolist())
+
 # Function to display login page
 def show_login_page():
     st.title("Login Page")
+
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
-    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS", "BHOPAL-TTBS"])
+    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS", "BHOPAL-TTBS", 
+                                            "RANCHI-AYUDA", "BHOPAL-MGM", "COIM-HRHNXT", "NOIDA-ICCS",
+                                            "HYD-CORPONE", "VIJAYAWADA-TTBS"])
     employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
     process = st.selectbox("Select Process", ["Collection", "Non_Collection", "Customer Support"])
-    Batch_No = st.text_input("Batch No:")
-    
+    batch_no = st.text_input("Batch No:")
+
     if st.button("Login"):
-        if not Batch_No:
+        if not batch_no:
             st.error("Please enter a Batch No!")
         elif username == "admin" and password == "admin":
             st.session_state.logged_in = True
@@ -40,32 +55,25 @@ def show_login_page():
             st.session_state.center = center
             st.session_state.employee_type = employee_type
             st.session_state.process = process
-            st.session_state.Batch_No = Batch_No
+            st.session_state.batch_no = batch_no
             st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])
-            st.success("Login successful!")
+            st.success("Logged in successfully!")
         else:
             st.error("Invalid username or password")
 
-# Function to show the editable form
+# Function to display the form
 def show_form():
     st.title("Fill the Form")
 
-    # Define department options based on process
     department_options = {
         "Collection": ["Consent", "LROD", "Collection"],
         "Non_Collection": ["SE_Onbording", "SIC_Onbording", "Risk"],
         "Customer Support": ["Email"]
     }
-    
-    # Initialize the data table if not already initialized
-    if "data" not in st.session_state:
-        st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])
 
-    # Display current data
     st.subheader("Current Data")
     st.dataframe(st.session_state.data)
 
-    # Input fields for adding new rows
     st.subheader("Add New Row")
     with st.form(key="add_row_form"):
         emp_id = st.text_input("EMP ID")
@@ -77,7 +85,6 @@ def show_form():
         submit_button = st.form_submit_button("Add Row")
 
         if submit_button:
-            # Validate input
             if not emp_id or not name or not contact_no or not email or not department or not trainer:
                 st.error("All fields are required.")
             elif not is_valid_email(email):
@@ -85,12 +92,10 @@ def show_form():
             elif not is_valid_contact_number(contact_no):
                 st.error("Contact number must be exactly 10 digits.")
             else:
-                # Add to DataFrame
                 new_row = {"EMP ID": emp_id, "Name": name, "Contact No": contact_no, "Email": email, "Department": department, "Trainer": trainer}
                 st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_row])], ignore_index=True)
                 st.success("Row added successfully!")
 
-    # Delete rows
     if not st.session_state.data.empty:
         st.subheader("Delete Row")
         row_to_delete = st.number_input("Row to Delete (0-based index):", min_value=0, max_value=len(st.session_state.data) - 1, step=1)
@@ -98,13 +103,23 @@ def show_form():
             st.session_state.data = st.session_state.data.drop(row_to_delete).reset_index(drop=True)
             st.success(f"Row {row_to_delete} deleted successfully.")
 
-    # Submit to Google Sheets
     if st.button("Submit Data"):
         if st.session_state.data.empty:
             st.error("No data to submit. Add some rows first.")
         else:
-            # Call function to save data to Google Sheets
             save_to_google_sheets(st.session_state.data)
             st.success("Data submitted successfully!")
-            # Clear DataFrame after submission
             st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])
+
+# Main function
+def main():
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        show_login_page()
+    else:
+        show_form()
+
+if __name__ == "__main__":
+    main()
