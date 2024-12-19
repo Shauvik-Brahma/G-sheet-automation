@@ -140,8 +140,9 @@ def show_form():
 
     # Add a Refresh Button to reset the table
     if st.button("Refresh Data"):
-        st.session_state.data = []
-        st.experimental_rerun()  # Refresh the app
+        st.session_state.data = []  # Reset the data
+        # Manually trigger the page to re-render
+        st.experimental_rerun()  # Rerun the script to reset
 
     # Displaying the table of all added rows with "Delete" option on the right side of each row
     if st.session_state.data:
