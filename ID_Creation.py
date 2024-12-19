@@ -29,6 +29,7 @@ def save_to_google_sheets(data):
     else:
         sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
 
+    # Append each row to the Google Sheet
     for _, row in data.iterrows():
         sheet.append_row(row.values.tolist())
 
@@ -70,19 +71,27 @@ def show_form():
         "Customer Support": ["Email"]
     }
 
-    # Show existing rows
     st.subheader("Current Data")
     if not st.session_state.data.empty:
-        edited_data = st.data_editor(
-            st.session_state.data,
-            num_rows="dynamic",
-            key="data_editor"
-        )
-        st.session_state.data = edited_data  # Save any edits directly to session state
+        for i, row in st.session_state.data.iterrows():
+            cols = st.columns(7)  # Create columns for row display
+            cols[0].write(row["EMP ID"])
+            cols[1].write(row["Name"])
+            cols[2].write(row["Contact No"])
+            cols[3].write(row["Email"])
+            cols[4].write(row["Department"])
+            cols[5].write(row["Trainer"])
+            # Add a "Delete" button for each row
+            if cols[6].button("Delete", key=f"delete_{i}"):
+                # Drop the row and reset the index
+                st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
+                # Trigger a re-render to reflect the change
+                st.experimental_rerun()
+
+    # If no data exists in the table
     else:
         st.write("No rows added yet.")
 
-    # Add new row
     st.subheader("Add New Row")
     with st.form(key="add_row_form"):
         emp_id = st.text_input("EMP ID")
@@ -105,7 +114,6 @@ def show_form():
                 st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_row])], ignore_index=True)
                 st.success("Row added successfully!")
 
-    # Submit data
     if st.button("Submit Data"):
         if st.session_state.data.empty:
             st.error("No data to submit. Add some rows first.")
