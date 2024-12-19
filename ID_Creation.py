@@ -1,6 +1,50 @@
 import streamlit as st
 import pandas as pd
 import re
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Function to authenticate and get the Google Sheets client
+def authenticate_gspread():
+    # Define the scope of access
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    
+    # Authenticate using the credentials stored in Streamlit secrets
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gcp"], scope)
+    
+    # Authorize and open the Google Sheets document
+    client = gspread.authorize(credentials)
+    
+    return client
+
+# Function to get the 'Kolkata' sheet from Google Sheets
+def get_kolkata_sheet():
+    client = authenticate_gspread()
+    
+    # Open the spreadsheet by ID (use your specific spreadsheet ID here)
+    spreadsheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE")  # Your sheet ID
+    sheet = spreadsheet.worksheet("Kolkata")  # Get the 'Kolkata' sheet
+    
+    return sheet
+
+# Function to append data to the 'Kolkata' sheet
+def append_to_google_sheet(data):
+    sheet = get_kolkata_sheet()
+    
+    # Convert the data to the format suitable for appending
+    row = [
+        data.get("EMP ID", ""),
+        data.get("Agent Name", ""),
+        data.get("Contact No", ""),
+        data.get("Official Email_ID", ""),
+        data.get("Department", ""),
+        data.get("Trainer Name", ""),
+        data.get("Designation", "")  # Add 'Designation' if available
+    ]
+    
+    # Append the row to the Google Sheets
+    sheet.append_row(row)
+    st.success("Data successfully added to Google Sheets!")
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
@@ -108,36 +152,6 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    else:
-        # Form for other centers
-        emp_id = st.text_input("EMP ID", key="emp_id")
-        candidate_name = st.text_input("Candidate Name", key="candidate_name")
-        mobile_no = st.text_input("Mobile No.", key="mobile_no")
-        mail_id = st.text_input("Mail ID", key="mail_id")
-        process_name = st.text_input("Process Name", key="process_name")
-        trainer = st.text_input("Trainer", key="trainer")
-
-        # Add Row functionality
-        if st.button("Add Row", key="add_row"):
-            # Validate inputs before adding a new row
-            if not emp_id or not candidate_name or not mobile_no or not mail_id or not process_name or not trainer:
-                st.error("Please fill in all fields!")
-            elif not is_valid_email(mail_id):
-                st.error("Please enter a valid email address.")
-            elif not is_valid_contact_number(mobile_no):
-                st.error("Mobile number must be 10 digits.")
-            else:
-                new_row = {
-                    "EMP ID": emp_id,
-                    "Candidate Name": candidate_name,
-                    "Mobile No": mobile_no,
-                    "Mail ID": mail_id,
-                    "Process Name": process_name,
-                    "Trainer": trainer
-                }
-                st.session_state.data.append(new_row)
-                st.success("Row added successfully!")
-
     # Displaying the table of all added rows
     if st.session_state.data:
         st.write("Your Input Table:")
@@ -166,9 +180,9 @@ def show_form():
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
+            for row in st.session_state.data:
+                append_to_google_sheet(row)  # Append each row to the Google Sheet
             st.write("Form submitted successfully!")
-            # Process the form data here as needed
-            st.write(f"Collected Data: {st.session_state.data}")
         else:
             st.error("No rows to submit. Please add some rows first.")
 
