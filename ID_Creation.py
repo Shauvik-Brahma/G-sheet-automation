@@ -1,161 +1,67 @@
 import streamlit as st
 import pandas as pd
-import re
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 
-# Function to authenticate and get the Google Sheets client
-def authenticate_gspread():
-    # Define the scope of access
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Authenticate using the credentials stored in Streamlit secrets
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gcp"], scope)
-    
-    # Authorize and open the Google Sheets document
-    client = gspread.authorize(credentials)
-    
-    return client
+# Define a simple username and password for login
+USERNAME = "admin"
+PASSWORD = "admin"
 
-# Function to get the 'Kolkata' sheet from Google Sheets
-def get_kolkata_sheet():
-    client = authenticate_gspread()
-    
-    # Open the spreadsheet by ID (use your specific spreadsheet ID here)
-    spreadsheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE")  # Your sheet ID
-    sheet = spreadsheet.worksheet("Kolkata")  # Get the 'Kolkata' sheet
-    
-    return sheet
+# Initialize session state for data and login status if they don't exist
+if 'data' not in st.session_state:
+    st.session_state.data = []
 
-# Function to append data to the 'Kolkata' sheet
-def append_to_google_sheet(data):
-    sheet = get_kolkata_sheet()
-    
-    # Convert the data to the format suitable for appending
-    row = [
-        data.get("EMP ID", ""),
-        data.get("Agent Name", ""),
-        data.get("Contact No", ""),
-        data.get("Official Email_ID", ""),
-        data.get("Department", ""),
-        data.get("Trainer Name", ""),
-        data.get("Designation", "")  # Add 'Designation' if available
-    ]
-    
-    # Append the row to the Google Sheets
-    sheet.append_row(row)
-    st.success("Data successfully added to Google Sheets!")
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-# Function to display login page with "Center" dropdown
-def show_login_page():
+# Add Row Functionality
+def add_row(name, age, city):
+    st.session_state.data.append([name, age, city])
+
+# Delete Row Functionality
+def delete_row(row_to_delete):
+    if 1 <= row_to_delete <= len(st.session_state.data):
+        st.session_state.data.pop(row_to_delete - 1)
+        return True
+    return False
+
+# Login Page Functionality
+def login_page():
     st.title("Login Page")
-    
-    # Username and password input fields
-    username = st.text_input("Username")
-    password = st.text_input("Password", type='password')
-    
-    # Center dropdown for selection
-    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS",
-                                            "BHOPAL-TTBS", "RANCHI-AYUDA","BHOPAL-MGM","COIM-HRHNXT"
-                                            ,"NOIDA-ICCS", "HYD-CORPONE", "VIJAYAWADA-TTBS"])
-    
-    # Employee Type dropdown
-    employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
 
-    # Conditional Process dropdown based on Employee Type and Center
-    process = st.selectbox("Select Process", ["Collection", "Non_Collection", "Customer Support"])
+    # Input fields for username and password
+    username = st.text_input("Username:")
+    password = st.text_input("Password:", type="password")
 
-    Batch_No = st.text_input("Batch No:")
-
-    # Login button
+    # Check login button
     if st.button("Login"):
-        # Check if the Batch No is provided
-        if not Batch_No:
-            st.error("Please enter a Batch No!")
-        elif username == "admin" and password == "admin":  # Simple login check
+        if username == USERNAME and password == PASSWORD:
             st.session_state.logged_in = True
-            st.session_state.username = username
-            st.session_state.center = center  # Store selected center in session state
-            st.session_state.employee_type = employee_type  # Store selected employee type
-            st.session_state.process = process  # Store selected process in session state
-            st.session_state.Batch_No = Batch_No
-            st.session_state.form_displayed = True  # Flag to track whether form is displayed
-            st.session_state.data = []  # Initialize the list to hold the form data
+            st.success("Login successful!")
         else:
-            st.error("Invalid username or password")
+            st.error("Invalid username or password.")
 
-# Function to validate email format
-def is_valid_email(email):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
-    return re.match(email_regex, email) is not None
+# Streamlit Data Entry and Management Page
+def data_management_page():
+    st.title("Data Entry and Management")
 
-# Function to validate contact number (must be exactly 10 digits)
-def is_valid_contact_number(contact_number):
-    return contact_number.isdigit() and len(contact_number) == 10
+    # Add Row Form
+    with st.form(key="data_entry_form"):
+        name = st.text_input("Enter your name:")
+        age = st.number_input("Enter your age:", min_value=1)
+        city = st.text_input("Enter your city:")
 
-# Function to display the form after login
-def show_form():
-    st.title("Fill the Form")
-
-    # Initialize the data list if it's not already initialized
-    if "data" not in st.session_state:
-        st.session_state.data = []
-
-    # Department dropdown options based on process
-    department_options = {
-        "Collection": ["Consent", "LROD", "Collection"],
-        "Non_Collection": ["SE_Onbording", "ST_Onbording", "SIB_Onbording", "SIC_Onbording" , "SE_Credit check" , "SIC_Credit check","GRO inbound","V_KYC","Risk"
-                          ,"SIB_Credit check", "ST_Credit check","CC_NO_Loan","CC_Initiator_SIC","CC_Initiator_Student","CC_Initiator_SE","CC_Initiator_SIB","RRR"],
-        "Customer Support": ["Email"]
-    }
-
-    # Display and manage rows for specific centers
-    if st.session_state.center == "KOLKATA":
-        # Specific form for Kolkata
-        emp_id = st.text_input("EMP ID", key="emp_id")
-        agent_name = st.text_input("Agent Name", key="agent_name")
-        contact_no = st.text_input("Contact No:", key="contact_no")
-        official_email = st.text_input("Official Email_ID:", key="official_email")
-        
-        # Dynamically show department options based on the selected process
-        department = st.selectbox("Department Name:", department_options[st.session_state.process])
-        
-        trainer_name = st.text_input("Trainer Name:", key="trainer_name")
-
-        # Add a 'Designation' field if Employee Type is SLT
-        if st.session_state.employee_type == "SLT":
-            designation = st.text_input("Designation:", key="designation")
-        else:
-            designation = None  # Skip the designation field for other employee types
-
-        # Add Row functionality
-        if st.button("Add Row", key="add_row"):
-            # Validate inputs before adding a new row
-            if not emp_id or not agent_name or not contact_no or not official_email or not department or not trainer_name:
-                st.error("Please fill in all fields!")
-            elif not is_valid_email(official_email):
-                st.error("Please enter a valid email address.")
-            elif not is_valid_contact_number(contact_no):
-                st.error("Contact number must be 10 digits.")
-            elif st.session_state.employee_type == "SLT" and not designation:
-                st.error("Please enter the Designation for SLT employees.")
+        # Submit button to add a new row
+        submit_button = st.form_submit_button("Add Row")
+        if submit_button:
+            if name and city:  # Ensure data is not empty
+                add_row(name, age, city)
+                st.success(f"Row with Name: {name}, Age: {age}, City: {city} added successfully!")
             else:
-                new_row = {
-                    "EMP ID": emp_id,
-                    "Agent Name": agent_name,
-                    "Contact No": contact_no,
-                    "Official Email_ID": official_email,
-                    "Department": department,
-                    "Trainer Name": trainer_name,
-                    "Designation": designation if designation else ""  # Include designation if provided
-                }
-                st.session_state.data.append(new_row)
-                st.success("Row added successfully!")
+                st.error("Please fill all fields.")
 
     # Displaying the table of all added rows
     if st.session_state.data:
         st.write("Your Input Table:")
-        df = pd.DataFrame(st.session_state.data)
+        df = pd.DataFrame(st.session_state.data, columns=["Name", "Age", "City"])
         st.dataframe(df)
 
         # Delete Row functionality
@@ -167,36 +73,31 @@ def show_form():
             key="row_to_delete"  # Unique key for this widget
         )
 
-        # Only delete when the "Delete Row" button is pressed
-        delete_button = st.button("Delete Row", key="delete_button")  # Unique key for delete button
+        # Delete row button
+        delete_button = st.button("Delete Row", key="delete_button")
 
         if delete_button:
-            # Ensure the row number is within valid range and delete the row
-            if 1 <= row_to_delete <= len(df):
-                st.session_state.data.pop(row_to_delete - 1)
+            # Ensure the row number is valid and delete the row
+            if delete_row(row_to_delete):
                 st.success(f"Row {row_to_delete} deleted successfully!")
-                # The table should refresh automatically after this, as the state is updated.
+            else:
+                st.error("Invalid row number. Please try again.")
+    else:
+        st.write("No data available yet.")
 
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
-            for row in st.session_state.data:
-                append_to_google_sheet(row)  # Append each row to the Google Sheet
             st.write("Form submitted successfully!")
+            # Process the form data here as needed
+            st.write(f"Collected Data: {st.session_state.data}")
         else:
             st.error("No rows to submit. Please add some rows first.")
 
-# Main function to control the flow of the app
-def main():
-    # Initialize session state if not already initialized
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-        st.session_state.form_displayed = False  # Ensure form is not displayed by default
-
-    if not st.session_state.logged_in:
-        show_login_page()  # Show login page if not logged in
-    else:
-        show_form()  # Show the form after login
-
-if __name__ == "__main__":
-    main()
+# Main Application Logic
+if not st.session_state.logged_in:
+    # If not logged in, show the login page
+    login_page()
+else:
+    # If logged in, show the data management page
+    data_management_page()
