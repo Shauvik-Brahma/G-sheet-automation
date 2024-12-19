@@ -1,75 +1,49 @@
 import streamlit as st
-import re
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
 
-# Function to authenticate Google Sheets using credentials
-def authenticate_google_sheets():
-    # Access the credentials from Streamlit secrets
-    creds = st.secrets["google_credentials"]  # Store your JSON credentials as a secret
+# Authenticate with Google Sheets using Streamlit secrets
+def authenticate_gspread():
+    # Load credentials from the Streamlit secrets
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
     
-    # Define the scope required to access Google Sheets
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    # Authenticate the credentials
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
     
-    # Use the credentials to authenticate
-    creds_dict = creds
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    return client
+
+# Append data to Google Sheets
+def append_to_sheet(data):
+    client = authenticate_gspread()
     
-    # Authorize and connect to the Google Sheets API
-    client = gspread.authorize(credentials)
+    # Open the Google Sheet using its URL
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0#gid=0")
     
-    # Open the spreadsheet by its URL (replace this with your sheet URL)
-    spreadsheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?usp=sharing")
+    # Select the "Kolkata" sheet
+    worksheet = sheet.worksheet("Kolkata")
     
-    # Open the specific worksheet (sheet name "Kolkata")
-    worksheet = spreadsheet.worksheet("Kolkata")
-    return worksheet
+    # Append the data as a new row
+    worksheet.append_row(data)
 
-# Function to validate email format
-def is_valid_email(email):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
-    return re.match(email_regex, email) is not None
+# Streamlit Form for user input
+st.title("Data Entry for Kolkata Sheet")
 
-# Function to validate phone number (must be exactly 10 digits)
-def is_valid_phone(phone):
-    return phone.isdigit() and len(phone) == 10
-
-# Function to display the form and connect to Google Sheets
-def show_form():
-    st.title("Simple Form with Google Sheets Integration")
-
-    # Input fields for user information
-    emp_id = st.text_input("EMP ID:")
-    agent_name = st.text_input("Agent Name:")
-    contact_no = st.text_input("Contact No:")
-    official_email = st.text_input("Official Email ID:")
-
+with st.form(key="data_entry_form"):
+    name = st.text_input("Enter your name:")
+    age = st.number_input("Enter your age:", min_value=1)
+    city = st.text_input("Enter your city:")
+    
     # Submit button
-    if st.button("Submit"):
-        # Validate the inputs
-        if not emp_id or not agent_name or not contact_no or not official_email:
-            st.error("Please fill in all fields!")
-        elif not is_valid_email(official_email):
-            st.error("Please enter a valid email address.")
-        elif not is_valid_phone(contact_no):
-            st.error("Contact number must be exactly 10 digits.")
+    submit_button = st.form_submit_button("Submit")
+    
+    if submit_button:
+        if name and city:  # Ensure data is not empty
+            # Data to append to the sheet
+            data = [name, age, city]
+            append_to_sheet(data)
+            st.success("Data has been successfully added to the sheet!")
         else:
-            # Authenticate with Google Sheets
-            worksheet = authenticate_google_sheets()
-            
-            # Append the form data to Google Sheets
-            new_row = [emp_id, agent_name, contact_no, official_email]
-            worksheet.append_row(new_row)
-            
-            st.success("Form submitted successfully!")
-            st.write("EMP ID:", emp_id)
-            st.write("Agent Name:", agent_name)
-            st.write("Contact No:", contact_no)
-            st.write("Official Email ID:", official_email)
-
-# Main function to run the app
-def main():
-    show_form()  # Show the form to the user
-
-if __name__ == "__main__":
-    main()
+            st.error("Please fill all fields.")
