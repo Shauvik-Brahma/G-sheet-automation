@@ -104,7 +104,7 @@ def show_form():
     if st.button("Submit"):
         if st.session_state.data:
             try:
-                worksheet = connect_to_google_sheets("kolkata")
+                worksheet = connect_to_google_sheets("K")
                 for row in st.session_state.data:
                     worksheet.append_row(list(row.values()))
                 st.success("Data successfully added to Google Sheets!")
