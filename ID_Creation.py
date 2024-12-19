@@ -7,28 +7,26 @@ import datetime
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
+    # Define the scope for Google Sheets and Google Drive API
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    
+    # Use the credentials from Streamlit secrets
     creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gcp_service_account"], scope)
+    
+    # Authenticate with Google Sheets
     client = gspread.authorize(creds)
+    
+    # Return the authenticated client
     return client
-
-# Function to validate email format
-def is_valid_email(email):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
-    return re.match(email_regex, email) is not None
-
-# Function to validate contact number (must be exactly 10 digits)
-def is_valid_contact_number(contact_number):
-    return contact_number.isdigit() and len(contact_number) == 10
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
     st.title("Login Page")
-
+    
     # Username and password input fields
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
-
+    
     # Center dropdown for selection
     center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS",
                                             "BHOPAL-TTBS", "RANCHI-AYUDA","BHOPAL-MGM","COIM-HRHNXT"
@@ -69,6 +67,15 @@ def show_login_page():
         else:
             st.error("Invalid username or password")
 
+# Function to validate email format
+def is_valid_email(email):
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    return re.match(email_regex, email) is not None
+
+# Function to validate contact number (must be exactly 10 digits)
+def is_valid_contact_number(contact_number):
+    return contact_number.isdigit() and len(contact_number) == 10
+
 # Function to display the form after login
 def show_form():
     st.title("Fill the Form")
@@ -85,30 +92,25 @@ def show_form():
         "Customer Support": ["Email"]
     }
 
-    # Display and manage rows
+    # Form elements for "KOLKATA" center
     if st.session_state.center == "KOLKATA":
-        # Specific form for Kolkata
         emp_id = st.text_input("EMP ID", key="emp_id")
         agent_name = st.text_input("Agent Name", key="agent_name")
         contact_no = st.text_input("Contact No:", key="contact_no")
         official_email = st.text_input("Official Email_ID:", key="official_email")
         
-        # Dynamically show department options based on the selected process
         department = st.selectbox("Department Name:", department_options[st.session_state.process])
-        
         trainer_name = st.text_input("Trainer Name:", key="trainer_name")
 
-        # Add a 'Designation' field if Employee Type is SLT
         if st.session_state.employee_type == "SLT":
             designation = st.text_input("Designation:", key="designation")
         else:
-            designation = None  # Skip the designation field for other employee types
+            designation = None
 
         # Add Row functionality
         if st.button("Add Row", key="add_row"):
-            # Validate inputs before adding a new row
             if not emp_id or not agent_name or not contact_no or not official_email or not department or not trainer_name:
-                st.error("Please fill in all fields, including Batch No!")
+                st.error("Please fill in all fields!")
             elif not is_valid_email(official_email):
                 st.error("Please enter a valid email address.")
             elif not is_valid_contact_number(contact_no):
@@ -123,13 +125,13 @@ def show_form():
                     "Official Email_ID": official_email,
                     "Department": department,
                     "Trainer Name": trainer_name,
-                    "Designation": designation if designation else ""  # Include designation if provided
+                    "Designation": designation if designation else ""
                 }
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
+    # Form elements for other centers
     else:
-        # Form for other centers
         emp_id = st.text_input("EMP ID", key="emp_id")
         candidate_name = st.text_input("Candidate Name", key="candidate_name")
         mobile_no = st.text_input("Mobile No.", key="mobile_no")
@@ -137,9 +139,7 @@ def show_form():
         process_name = st.text_input("Process Name", key="process_name")
         trainer = st.text_input("Trainer", key="trainer")
 
-        # Add Row functionality
         if st.button("Add Row", key="add_row"):
-            # Validate inputs before adding a new row
             if not emp_id or not candidate_name or not mobile_no or not mail_id or not process_name or not trainer:
                 st.error("Please fill in all fields!")
             elif not is_valid_email(mail_id):
@@ -170,23 +170,24 @@ def show_form():
             min_value=1,
             max_value=len(df),
             step=1,
-            key="row_to_delete"  # Unique key for this widget
+            key="row_to_delete"
         )
 
-        # Only delete when the "Delete Row" button is pressed
-        delete_button = st.button("Delete Row", key="delete_button")  # Unique key for delete button
+        delete_button = st.button("Delete Row", key="delete_button")
 
         if delete_button:
-            # Ensure the row number is within valid range and delete the row
             if 1 <= row_to_delete <= len(df):
                 st.session_state.data.pop(row_to_delete - 1)
                 st.success(f"Row {row_to_delete} deleted successfully!")
-                # The table should refresh automatically after this, as the state is updated.
+
+        # Add a Refresh button to reload the table
+        if st.button("Refresh Table"):
+            # This will refresh the table and re-display the current data
+            st.experimental_rerun()
 
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
-            # Connect to Google Sheets
             client = connect_to_google_sheets()
             
             # Select the appropriate sheet based on the center
@@ -205,7 +206,6 @@ def show_form():
                 row["Batch No"] = st.session_state.login_info["Batch No"]
                 row["Login Time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Append the row to the appropriate Google Sheet
                 sheet.append_row(list(row.values()))  # Add each row's values to the sheet
 
             st.write("Form submitted successfully!")
