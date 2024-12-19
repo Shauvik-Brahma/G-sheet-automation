@@ -161,13 +161,20 @@ def show_form():
     # Displaying the table of all added rows
     if st.session_state.data:
         st.write("Your Input Table:")
-        df = pd.DataFrame(st.session_state.data)
-        
-        # Display the dataframe with Delete buttons on the right side of each row
-        for idx, row in df.iterrows():
-            col1, col2 = st.columns([6, 1])  # Create two columns: one for data, one for the delete button
+
+        # Loop over each row and display it with delete option
+        for idx, row in enumerate(st.session_state.data):
+            col1, col2 = st.columns([5, 1])  # Create two columns: one for data, one for the delete button
             with col1:
-                st.write(row.to_dict())  # Display the row data
+                # Display row as individual columns (fields) rather than as a dict
+                st.write(f"**EMP ID**: {row['EMP ID']}")
+                st.write(f"**Agent Name**: {row['Agent Name']}")
+                st.write(f"**Contact No**: {row['Contact No']}")
+                st.write(f"**Official Email_ID**: {row['Official Email_ID']}")
+                st.write(f"**Department**: {row['Department']}")
+                st.write(f"**Trainer Name**: {row['Trainer Name']}")
+                if row.get('Designation'):
+                    st.write(f"**Designation**: {row['Designation']}")
             with col2:
                 delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
                 if delete_button:
