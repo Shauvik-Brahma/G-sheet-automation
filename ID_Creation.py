@@ -54,26 +54,18 @@ def show_login_page():
             st.session_state.Batch_No = Batch_No
             st.session_state.form_displayed = True  # Flag to track whether form is displayed
             st.session_state.data = []  # Initialize the list to hold the form data
-            
-            # Log login details to Google Sheets
-            log_login_details(username, password, center, employee_type, process, Batch_No)
+
+            # Store login information in session_state for use later
+            st.session_state.login_info = {
+                "Username": username,
+                "Password": password,
+                "Center": center,
+                "Employee Type": employee_type,
+                "Process": process,
+                "Batch No": Batch_No
+            }
         else:
             st.error("Invalid username or password")
-
-# Function to log login details to Google Sheets
-def log_login_details(username, password, center, employee_type, process, batch_no):
-    client = connect_to_google_sheets()
-    
-    # Select the "Login Data" worksheet (create it if it doesn't exist)
-    try:
-        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Login Data")
-    except gspread.exceptions.WorksheetNotFound:
-        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").add_worksheet(title="Login Data", rows="100", cols="7")
-        sheet.append_row(["Username", "Password", "Center", "Employee Type", "Process", "Batch No", "Login Time"])
-
-    # Append the login details with timestamp to the "Login Data" sheet
-    login_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    sheet.append_row([username, password, center, employee_type, process, batch_no, login_time])
 
 # Function to validate email format
 def is_valid_email(email):
@@ -210,10 +202,19 @@ def show_form():
             else:
                 sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
             
-            # Append each row's values to the selected sheet
+            # Add login details to each form row
             for row in st.session_state.data:
+                row["Username"] = st.session_state.login_info["Username"]
+                row["Password"] = st.session_state.login_info["Password"]
+                row["Center"] = st.session_state.login_info["Center"]
+                row["Employee Type"] = st.session_state.login_info["Employee Type"]
+                row["Process"] = st.session_state.login_info["Process"]
+                row["Batch No"] = st.session_state.login_info["Batch No"]
+                row["Login Time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                # Append the row to the appropriate Google Sheet
                 sheet.append_row(list(row.values()))  # Add each row's values to the sheet
-            
+
             st.write("Form submitted successfully!")
             st.write(f"Collected Data: {st.session_state.data}")
         else:
