@@ -15,9 +15,8 @@ def connect_to_google_sheets():
     # Authenticate with Google Sheets
     client = gspread.authorize(creds)
     
-    # Open the specific Google Sheets document by key and select the sheet (Kolkata)
-    sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
-    return sheet
+    # Return the authenticated client
+    return client
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
@@ -183,10 +182,19 @@ def show_form():
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
-            # Connect to Google Sheets and append the data
-            sheet = connect_to_google_sheets()
+            # Connect to Google Sheets
+            client = connect_to_google_sheets()
+            
+            # Select the appropriate sheet based on the center
+            if st.session_state.center == "KOLKATA":
+                sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
+            else:
+                sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
+            
+            # Append each row's values to the selected sheet
             for row in st.session_state.data:
                 sheet.append_row(list(row.values()))  # Add each row's values to the sheet
+            
             st.write("Form submitted successfully!")
             st.write(f"Collected Data: {st.session_state.data}")
         else:
