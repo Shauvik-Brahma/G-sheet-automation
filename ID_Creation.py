@@ -7,55 +7,41 @@ import datetime
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
-    # Define the scope for Google Sheets and Google Drive API
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    
-    # Use the credentials from Streamlit secrets
     creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gcp_service_account"], scope)
-    
-    # Authenticate with Google Sheets
     client = gspread.authorize(creds)
-    
-    # Return the authenticated client
     return client
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
     st.title("Login Page")
     
-    # Username and password input fields
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
     
-    # Center dropdown for selection
     center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS",
                                             "BHOPAL-TTBS", "RANCHI-AYUDA","BHOPAL-MGM","COIM-HRHNXT"
                                             ,"NOIDA-ICCS", "HYD-CORPONE" , "VIJAYAWADA-TTBS" ])
     
-    # Employee Type dropdown
     employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
 
-    # Conditional Process dropdown based on Employee Type and Center
     process = st.selectbox("Select Process", ["Collection", "Non_Collection", "Customer Support"])
 
     Batch_No = st.text_input("Batch No:")
 
-    # Login button
     if st.button("Login"):
-        # Check if the Batch No is provided
         if not Batch_No:
             st.error("Please enter a Batch No!")
-        elif username == "admin" and password == "admin":  # Simple login check
+        elif username == "admin" and password == "admin":
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.session_state.center = center  # Store selected center in session state
-            st.session_state.employee_type = employee_type  # Store selected employee type
-            st.session_state.process = process  # Store selected process in session state
+            st.session_state.center = center
+            st.session_state.employee_type = employee_type
+            st.session_state.process = process
             st.session_state.Batch_No = Batch_No
-            st.session_state.form_displayed = True  # Flag to track whether form is displayed
-            st.session_state.data = []  # Initialize the list to hold the form data
+            st.session_state.form_displayed = True
+            st.session_state.data = []
 
-            # Store login information in session_state for use later
             st.session_state.login_info = {
                 "Username": username,
                 "Password": password,
@@ -80,11 +66,9 @@ def is_valid_contact_number(contact_number):
 def show_form():
     st.title("Fill the Form")
 
-    # Initialize the data list if it's not already initialized
     if "data" not in st.session_state:
         st.session_state.data = []
 
-    # Department dropdown options based on process
     department_options = {
         "Collection": ["Consent", "LROD", "Collection"],
         "Non_Collection": ["SE_Onbording", "ST_Onbording", "SIB_Onbording", "SIC_Onbording" , "SE_Credit check" , "SIC_Credit check","GRO inbound","V_KYC","Risk"
@@ -92,13 +76,11 @@ def show_form():
         "Customer Support": ["Email"]
     }
 
-    # Form elements for "KOLKATA" center
     if st.session_state.center == "KOLKATA":
         emp_id = st.text_input("EMP ID", key="emp_id")
         agent_name = st.text_input("Agent Name", key="agent_name")
         contact_no = st.text_input("Contact No:", key="contact_no")
         official_email = st.text_input("Official Email_ID:", key="official_email")
-        
         department = st.selectbox("Department Name:", department_options[st.session_state.process])
         trainer_name = st.text_input("Trainer Name:", key="trainer_name")
 
@@ -107,7 +89,6 @@ def show_form():
         else:
             designation = None
 
-        # Add Row functionality
         if st.button("Add Row", key="add_row"):
             if not emp_id or not agent_name or not contact_no or not official_email or not department or not trainer_name:
                 st.error("Please fill in all fields!")
@@ -130,7 +111,6 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Form elements for other centers
     else:
         emp_id = st.text_input("EMP ID", key="emp_id")
         candidate_name = st.text_input("Candidate Name", key="candidate_name")
@@ -158,30 +138,29 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Displaying the table of all added rows in tabular format
+    # Displaying the table of all added rows as a DataFrame
     if st.session_state.data:
         st.write("Your Input Table:")
-        
-        # Convert session state data to DataFrame for tabular display
         df = pd.DataFrame(st.session_state.data)
 
-        # Display the DataFrame in Streamlit
+        # Add a Delete button for each row
+        delete_column = []
+        for idx in range(len(df)):
+            delete_column.append(f"Delete {idx + 1}")
+
+        # Add delete column to the DataFrame
+        df["Delete"] = delete_column
+
+        # Display the DataFrame with the delete button
         st.dataframe(df)
 
-        # Delete Row functionality with a button for each row
-        for idx, row in enumerate(st.session_state.data):
-            # Using a container for each row with delete button
-            delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
+        # Handle delete row action
+        for idx, row in df.iterrows():
+            delete_button = st.button(f"Delete Row {idx + 1}")
             if delete_button:
                 st.session_state.data.pop(idx)
                 st.success(f"Row {idx + 1} deleted successfully!")
-                break  # Prevent modifying the list while iterating over it
-
-        # Add a Refresh button to manually reload the data without causing an error
-        if st.button("Refresh Table"):
-            # Refresh the session state data (effectively reloading the table)
-            st.session_state.data = st.session_state.data[:]
-            st.success("Table refreshed!")
+                break  # Exit the loop after deletion
 
     # Submit button for the form
     if st.button("Submit"):
@@ -213,7 +192,6 @@ def show_form():
 
 # Main function to control the flow of the app
 def main():
-    # Initialize session state if not already initialized
     if "logged_in" not in st.session_state:
         st.session_state.logged_in = False
         st.session_state.form_displayed = False  # Ensure form is not displayed by default
