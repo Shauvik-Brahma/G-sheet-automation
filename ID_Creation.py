@@ -138,11 +138,6 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Add a Refresh Button to reset the table
-    if st.button("Refresh Data"):
-        # Reset session state data and allow Streamlit to re-render the form
-        st.session_state.data = []  # Reset the data
-
     # Displaying the table of all added rows with "Delete" option on the right side of each row
     if st.session_state.data:
         st.write("Your Input Table:")
@@ -162,6 +157,15 @@ def show_form():
                 st.session_state.data.pop(i)
                 st.success(f"Row {i + 1} deleted successfully!")
                 break  # Exit the loop after deletion
+
+    # Refresh DataFrame button
+    if st.button("Refresh DataFrame"):
+        if st.session_state.data:
+            st.write("Updated DataFrame:")
+            df = pd.DataFrame(st.session_state.data)
+            st.dataframe(df)
+        else:
+            st.warning("No data available to display.")
 
     # Submit button for the form
     if st.button("Submit"):
