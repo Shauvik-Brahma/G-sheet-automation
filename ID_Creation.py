@@ -161,11 +161,21 @@ def show_form():
     # Displaying the table of all added rows
     if st.session_state.data:
         st.write("Your Input Table:")
+
+        # Display the data in tabular format
         df = pd.DataFrame(st.session_state.data)
 
-        # Display the table with a delete button for each row
+        # Display the table with delete buttons for each row
+        st.table(df)
+
+        # Add a Refresh button to manually reload the data without causing an error
+        if st.button("Refresh Table"):
+            # Refresh the session state data (effectively reloading the table)
+            st.session_state.data = st.session_state.data[:]
+            st.success("Table refreshed!")
+
+        # Delete Row functionality
         for i, row in df.iterrows():
-            st.write(row.to_dict())  # Show the row data as a dictionary
             if st.button(f"Delete Row {i+1}", key=f"delete_{i}"):
                 st.session_state.data.pop(i)  # Delete the row
                 st.success(f"Row {i+1} deleted successfully!")
