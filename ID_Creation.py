@@ -180,10 +180,11 @@ def show_form():
                 st.session_state.data.pop(row_to_delete - 1)
                 st.success(f"Row {row_to_delete} deleted successfully!")
 
-        # Add a Refresh button to reload the table
+        # Add a Refresh button to manually reload the data without causing an error
         if st.button("Refresh Table"):
-            # This will refresh the table and re-display the current data
-            st.experimental_rerun()
+            # Refresh the session state data (effectively reloading the table)
+            st.session_state.data = st.session_state.data[:]
+            st.success("Table refreshed!")
 
     # Submit button for the form
     if st.button("Submit"):
