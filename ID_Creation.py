@@ -138,41 +138,37 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Displaying the table of all added rows as a DataFrame
+    # Displaying the table of all added rows with "Delete" option on the right side of each row
     if st.session_state.data:
         st.write("Your Input Table:")
+
+        # Create a DataFrame from session state data
         df = pd.DataFrame(st.session_state.data)
 
-        # Add a Delete button for each row
-        delete_column = []
-        for idx in range(len(df)):
-            delete_column.append(f"Delete {idx + 1}")
+        # Loop through each row to display data in columns and add a delete button
+        for i, row in df.iterrows():
+            cols = st.columns(len(row) + 1)  # Add one more column for delete button
+            
+            for j, (col_name, value) in enumerate(row.items()):
+                cols[j].write(value)
 
-        # Add delete column to the DataFrame
-        df["Delete"] = delete_column
-
-        # Display the DataFrame with the delete button
-        st.dataframe(df)
-
-        # Handle delete row action
-        for idx, row in df.iterrows():
-            delete_button = st.button(f"Delete Row {idx + 1}")
-            if delete_button:
-                st.session_state.data.pop(idx)
-                st.success(f"Row {idx + 1} deleted successfully!")
+            # Create a Delete button in the last column (right side)
+            if cols[-1].button(f"Delete Row {i + 1}"):
+                st.session_state.data.pop(i)
+                st.success(f"Row {i + 1} deleted successfully!")
                 break  # Exit the loop after deletion
 
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
             client = connect_to_google_sheets()
-            
+
             # Select the appropriate sheet based on the center
             if st.session_state.center == "KOLKATA":
                 sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
             else:
                 sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
-            
+
             # Add login details to each form row
             for row in st.session_state.data:
                 row["Username"] = st.session_state.login_info["Username"]
