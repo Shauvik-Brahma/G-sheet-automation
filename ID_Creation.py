@@ -162,15 +162,18 @@ def show_form():
     if st.session_state.data:
         st.write("Your Input Table:")
         df = pd.DataFrame(st.session_state.data)
-        st.dataframe(df)
-
-        # Add a Delete button for each row
+        
+        # Display the dataframe with Delete buttons on the right side of each row
         for idx, row in df.iterrows():
-            delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
-            if delete_button:
-                st.session_state.data.pop(idx)
-                st.success(f"Row {idx + 1} deleted successfully!")
-                break  # Prevent modifying the list while iterating over it
+            col1, col2 = st.columns([6, 1])  # Create two columns: one for data, one for the delete button
+            with col1:
+                st.write(row.to_dict())  # Display the row data
+            with col2:
+                delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
+                if delete_button:
+                    st.session_state.data.pop(idx)
+                    st.success(f"Row {idx + 1} deleted successfully!")
+                    break  # Prevent modifying the list while iterating over it
 
         # Add a Refresh button to manually reload the data without causing an error
         if st.button("Refresh Table"):
