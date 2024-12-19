@@ -21,138 +21,132 @@ def is_valid_email(email):
 def is_valid_contact_number(contact_number):
     return contact_number.isdigit() and len(contact_number) == 10
 
-# Function to display login page
-def show_login_page():
-    st.title("Login Page")
-    
-    username = st.text_input("Username")
-    password = st.text_input("Password", type='password')
-    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS", 
-                                            "BHOPAL-TTBS", "RANCHI-AYUDA", "BHOPAL-MGM", 
-                                            "COIM-HRHNXT", "NOIDA-ICCS", "HYD-CORPONE", 
-                                            "VIJAYAWADA-TTBS"])
-    
-    employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
-    process = st.selectbox("Select Process", ["Collection", "Non_Collection", "Customer Support"])
-    batch_no = st.text_input("Batch No:")
-    
-    if st.button("Login"):
-        if not batch_no:
-            st.error("Please enter a Batch No!")
-        elif username == "admin" and password == "admin":
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.session_state.center = center
-            st.session_state.employee_type = employee_type
-            st.session_state.process = process
-            st.session_state.batch_no = batch_no
-            st.session_state.data = []  # Initialize the data
-            st.session_state.form_displayed = True
-            st.success("Logged in successfully!")
-        else:
-            st.error("Invalid username or password")
-
-# Function to display the form and handle data
+# Function to display the form after login
 def show_form():
     st.title("Fill the Form")
 
-    # Initialize data if not already initialized
+    # Initialize the data list if it's not already initialized
     if "data" not in st.session_state:
         st.session_state.data = []
 
-    # Define department options based on process
+    # Department dropdown options based on process
     department_options = {
         "Collection": ["Consent", "LROD", "Collection"],
-        "Non_Collection": ["SE_Onbording", "SIC_Onbording", "Risk"],
+        "Non_Collection": ["SE_Onbording", "ST_Onbording", "SIB_Onbording", "SIC_Onbording" , "SE_Credit check" , "SIC_Credit check","GRO inbound","V_KYC","Risk"
+                          ,"SIB_Credit check", "ST_Credit check","CC_NO_Loan","CC_Initiator_SIC","CC_Initiator_Student","CC_Initiator_SE","CC_Initiator_SIB","RRR"],
         "Customer Support": ["Email"]
     }
 
-    if st.button("Refresh Table"):
-        st.session_state.show_table = True  # Refresh table
+    # Form for specific center - Kolkata or other
+    if st.session_state.center == "KOLKATA":
+        emp_id = st.text_input("EMP ID", key="emp_id")
+        agent_name = st.text_input("Agent Name", key="agent_name")
+        contact_no = st.text_input("Contact No:", key="contact_no")
+        official_email = st.text_input("Official Email_ID:", key="official_email")
+        department = st.selectbox("Department Name:", department_options[st.session_state.process])
+        trainer_name = st.text_input("Trainer Name:", key="trainer_name")
 
-    if "show_table" in st.session_state and st.session_state.show_table:
-        st.subheader("Current Data")
-        if st.session_state.data:
-            df = pd.DataFrame(st.session_state.data)
-            st.dataframe(df)
-
-            # Delete Row functionality
-            row_to_delete = st.number_input(
-                "Enter Row Number to Delete (1-based index):",
-                min_value=1,
-                max_value=len(df),
-                step=1
-            )
-            if st.button("Delete Row"):
-                if 1 <= row_to_delete <= len(df):
-                    st.session_state.data.pop(row_to_delete - 1)  # Remove the selected row
-                    st.session_state.show_table = True  # Refresh table
-                    st.success(f"Row {row_to_delete} deleted successfully!")
-                else:
-                    st.error("Invalid row number.")
+        if st.session_state.employee_type == "SLT":
+            designation = st.text_input("Designation:", key="designation")
         else:
-            st.write("No rows added yet.")
+            designation = None
 
-    st.subheader("Add New Row")
-    with st.form(key="add_row_form"):
-        emp_id = st.text_input("EMP ID")
-        name = st.text_input("Name")
-        contact_no = st.text_input("Contact No")
-        email = st.text_input("Email")
-        department = st.selectbox("Department", department_options[st.session_state.process])
-        trainer = st.text_input("Trainer")
-        submit_button = st.form_submit_button("Add Row")
-
-        if submit_button:
-            if not emp_id or not name or not contact_no or not email or not department or not trainer:
-                st.error("All fields are required.")
-            elif not is_valid_email(email):
-                st.error("Invalid email format.")
+        # Add Row functionality
+        if st.button("Add Row", key="add_row"):
+            if not emp_id or not agent_name or not contact_no or not official_email or not department or not trainer_name:
+                st.error("Please fill in all fields, including Batch No!")
+            elif not is_valid_email(official_email):
+                st.error("Please enter a valid email address.")
             elif not is_valid_contact_number(contact_no):
-                st.error("Contact number must be exactly 10 digits.")
+                st.error("Contact number must be 10 digits.")
+            elif st.session_state.employee_type == "SLT" and not designation:
+                st.error("Please enter the Designation for SLT employees.")
             else:
                 new_row = {
                     "EMP ID": emp_id,
-                    "Name": name,
+                    "Agent Name": agent_name,
                     "Contact No": contact_no,
-                    "Email": email,
+                    "Official Email_ID": official_email,
                     "Department": department,
+                    "Trainer Name": trainer_name,
+                    "Designation": designation if designation else ""
+                }
+                st.session_state.data.append(new_row)
+                st.success("Row added successfully!")
+
+    else:
+        emp_id = st.text_input("EMP ID", key="emp_id")
+        candidate_name = st.text_input("Candidate Name", key="candidate_name")
+        mobile_no = st.text_input("Mobile No.", key="mobile_no")
+        mail_id = st.text_input("Mail ID", key="mail_id")
+        process_name = st.text_input("Process Name", key="process_name")
+        trainer = st.text_input("Trainer", key="trainer")
+
+        if st.button("Add Row", key="add_row"):
+            if not emp_id or not candidate_name or not mobile_no or not mail_id or not process_name or not trainer:
+                st.error("Please fill in all fields!")
+            elif not is_valid_email(mail_id):
+                st.error("Please enter a valid email address.")
+            elif not is_valid_contact_number(mobile_no):
+                st.error("Mobile number must be 10 digits.")
+            else:
+                new_row = {
+                    "EMP ID": emp_id,
+                    "Candidate Name": candidate_name,
+                    "Mobile No": mobile_no,
+                    "Mail ID": mail_id,
+                    "Process Name": process_name,
                     "Trainer": trainer
                 }
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Submit button to save data to Google Sheets
-    if st.button("Submit Data"):
-        if not st.session_state.data:
-            st.error("No data to submit. Add some rows first.")
-        else:
-            client = connect_to_google_sheets()
+    # Display the table of all added rows with delete buttons beside each row
+    if st.session_state.data:
+        st.write("Your Input Table:")
+        for idx, row in enumerate(st.session_state.data):
+            cols = st.columns(len(row))  # Adjusting the number of columns based on the row
+            for i, (col_name, col_value) in enumerate(row.items()):
+                cols[i].write(col_value)  # Display each column's value
 
-            # Select the appropriate sheet based on the center
+            # Add delete button beside each row
+            if cols[-1].button(f"Delete Row {idx+1}", key=f"delete_{idx}"):
+                st.session_state.data.pop(idx)
+                st.success(f"Row {idx+1} deleted successfully!")
+                break  # Break to refresh the display after deletion
+
+    # Submit button for the form
+    if st.button("Submit"):
+        if st.session_state.data:
+            client = connect_to_google_sheets()
             if st.session_state.center == "KOLKATA":
                 sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
             else:
                 sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
 
-            # Add login details to each row and submit to Google Sheets
             for row in st.session_state.data:
-                row["Username"] = st.session_state.username
-                row["Password"] = st.session_state.password
-                row["Center"] = st.session_state.center
-                row["Employee Type"] = st.session_state.employee_type
-                row["Process"] = st.session_state.process
-                row["Batch No"] = st.session_state.batch_no
+                row["Username"] = st.session_state.login_info["Username"]
+                row["Password"] = st.session_state.login_info["Password"]
+                row["Center"] = st.session_state.login_info["Center"]
+                row["Employee Type"] = st.session_state.login_info["Employee Type"]
+                row["Process"] = st.session_state.login_info["Process"]
+                row["Batch No"] = st.session_state.login_info["Batch No"]
                 row["Login Time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Append each row to the selected Google Sheet
                 sheet.append_row(list(row.values()))
-            st.success("Data submitted successfully!")
-            st.session_state.data = []  # Clear data after submission
+
+            st.write("Form submitted successfully!")
+            st.write(f"Collected Data: {st.session_state.data}")
+        else:
+            st.error("No rows to submit. Please add some rows first.")
 
 # Main function to control the flow of the app
 def main():
-    if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+        st.session_state.form_displayed = False
+
+    if not st.session_state.logged_in:
         show_login_page()
     else:
         show_form()
