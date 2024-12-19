@@ -74,16 +74,23 @@ def show_form():
     st.subheader("Current Data")
     if not st.session_state.data.empty:
         for i, row in st.session_state.data.iterrows():
-            cols = st.columns(7)
+            cols = st.columns(7)  # Create columns for row display
             cols[0].write(row["EMP ID"])
             cols[1].write(row["Name"])
             cols[2].write(row["Contact No"])
             cols[3].write(row["Email"])
             cols[4].write(row["Department"])
             cols[5].write(row["Trainer"])
+            # Add a "Delete" button for each row
             if cols[6].button("Delete", key=f"delete_{i}"):
+                # Drop the row and reset the index
                 st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
+                # Trigger a re-render to reflect the change
                 st.experimental_rerun()
+
+    # If no data exists in the table
+    else:
+        st.write("No rows added yet.")
 
     st.subheader("Add New Row")
     with st.form(key="add_row_form"):
