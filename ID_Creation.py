@@ -49,7 +49,7 @@ def show_login_page():
 # Function to show the editable form
 def show_form():
     st.title("Fill the Form")
-    
+
     # Define department options based on process
     department_options = {
         "Collection": ["Consent", "LROD", "Collection"],
@@ -57,65 +57,54 @@ def show_form():
         "Customer Support": ["Email"]
     }
     
-    # Editable DataFrame for input
-    edited_df = st.experimental_data_editor(
-        st.session_state.data,
-        num_rows="dynamic",
-        key="data_editor"
-    )
-    
-    # Validation checks
-    invalid_rows = []
-    for index, row in edited_df.iterrows():
-        if not row["EMP ID"] or not row["Name"] or not row["Contact No"] or not row["Email"] or not row["Department"] or not row["Trainer"]:
-            invalid_rows.append(index)
-        elif not is_valid_email(row["Email"]):
-            invalid_rows.append(index)
-        elif not is_valid_contact_number(row["Contact No"]):
-            invalid_rows.append(index)
-    
-    if invalid_rows:
-        st.error(f"Row(s) {', '.join(map(str, invalid_rows))} have invalid data. Please fix before submission.")
-    
-    # Save the updated DataFrame to session state
-    st.session_state.data = edited_df
-    
-    # Submit button
-    if st.button("Submit"):
-        if invalid_rows:
-            st.error("Please fix the errors in the rows before submitting.")
-        elif st.session_state.data.empty:
-            st.error("No data to submit. Please add rows.")
-        else:
-            client = connect_to_google_sheets()
-            if st.session_state.center == "KOLKATA":
-                sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
+    # Initialize the data table if not already initialized
+    if "data" not in st.session_state:
+        st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])
+
+    # Display current data
+    st.subheader("Current Data")
+    st.dataframe(st.session_state.data)
+
+    # Input fields for adding new rows
+    st.subheader("Add New Row")
+    with st.form(key="add_row_form"):
+        emp_id = st.text_input("EMP ID")
+        name = st.text_input("Name")
+        contact_no = st.text_input("Contact No")
+        email = st.text_input("Email")
+        department = st.selectbox("Department", department_options[st.session_state.process])
+        trainer = st.text_input("Trainer")
+        submit_button = st.form_submit_button("Add Row")
+
+        if submit_button:
+            # Validate input
+            if not emp_id or not name or not contact_no or not email or not department or not trainer:
+                st.error("All fields are required.")
+            elif not is_valid_email(email):
+                st.error("Invalid email format.")
+            elif not is_valid_contact_number(contact_no):
+                st.error("Contact number must be exactly 10 digits.")
             else:
-                sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
-            
-            for _, row in st.session_state.data.iterrows():
-                row_data = list(row) + [
-                    st.session_state.username,
-                    st.session_state.center,
-                    st.session_state.employee_type,
-                    st.session_state.process,
-                    st.session_state.Batch_No,
-                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                ]
-                sheet.append_row(row_data)
-            
+                # Add to DataFrame
+                new_row = {"EMP ID": emp_id, "Name": name, "Contact No": contact_no, "Email": email, "Department": department, "Trainer": trainer}
+                st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_row])], ignore_index=True)
+                st.success("Row added successfully!")
+
+    # Delete rows
+    if not st.session_state.data.empty:
+        st.subheader("Delete Row")
+        row_to_delete = st.number_input("Row to Delete (0-based index):", min_value=0, max_value=len(st.session_state.data) - 1, step=1)
+        if st.button("Delete Row"):
+            st.session_state.data = st.session_state.data.drop(row_to_delete).reset_index(drop=True)
+            st.success(f"Row {row_to_delete} deleted successfully.")
+
+    # Submit to Google Sheets
+    if st.button("Submit Data"):
+        if st.session_state.data.empty:
+            st.error("No data to submit. Add some rows first.")
+        else:
+            # Call function to save data to Google Sheets
+            save_to_google_sheets(st.session_state.data)
             st.success("Data submitted successfully!")
-            st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])  # Reset data
-
-# Main function
-def main():
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-    
-    if not st.session_state.logged_in:
-        show_login_page()
-    else:
-        show_form()
-
-if __name__ == "__main__":
-    main()
+            # Clear DataFrame after submission
+            st.session_state.data = pd.DataFrame(columns=["EMP ID", "Name", "Contact No", "Email", "Department", "Trainer"])
