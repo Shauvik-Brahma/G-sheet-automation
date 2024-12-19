@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import time
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
@@ -69,28 +70,32 @@ def show_form():
         "Customer Support": ["Email"]
     }
 
-    # Display refresh button to update the table
-    if st.button("Refresh Table"):
-        st.session_state.show_table = True
+    # Display the data table with auto-refresh every 3 seconds
+    if "auto_refresh" not in st.session_state:
+        st.session_state.auto_refresh = True
+    if st.session_state.auto_refresh:
+        st.session_state.auto_refresh = False
+        time.sleep(3)  # Sleep for 3 seconds
+        st.experimental_rerun()  # Re-run the script to refresh
 
-    if "show_table" in st.session_state and st.session_state.show_table:
-        st.subheader("Current Data")
-        if not st.session_state.data.empty:
-            for i, row in st.session_state.data.iterrows():
-                cols = st.columns(7)  # Create columns for row display
-                cols[0].write(row["EMP ID"])
-                cols[1].write(row["Name"])
-                cols[2].write(row["Contact No"])
-                cols[3].write(row["Email"])
-                cols[4].write(row["Department"])
-                cols[5].write(row["Trainer"])
-                # Add a "Delete" button for each row
-                if cols[6].button("Delete", key=f"delete_{i}"):
-                    st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
-                    st.session_state.show_table = True  # Mark the table to refresh
+    st.subheader("Current Data")
+    if not st.session_state.data.empty:
+        for i, row in st.session_state.data.iterrows():
+            cols = st.columns(7)  # Create columns for row display
+            cols[0].write(row["EMP ID"])
+            cols[1].write(row["Name"])
+            cols[2].write(row["Contact No"])
+            cols[3].write(row["Email"])
+            cols[4].write(row["Department"])
+            cols[5].write(row["Trainer"])
+            # Add a "Delete" button for each row
+            if cols[6].button("Delete", key=f"delete_{i}"):
+                st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
+                # Re-run to refresh the table
+                st.experimental_rerun()
 
-        else:
-            st.write("No rows added yet.")
+    else:
+        st.write("No rows added yet.")
 
     st.subheader("Add New Row")
     with st.form(key="add_row_form"):
