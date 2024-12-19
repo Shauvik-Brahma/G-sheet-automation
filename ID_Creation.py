@@ -166,20 +166,22 @@ def show_form():
         df = pd.DataFrame(st.session_state.data)
 
         # Display the table with delete buttons for each row
-        st.table(df)
+        for i, row in df.iterrows():
+            cols = st.columns(len(row) + 1)  # One extra column for the delete button
+            for j, (col_name, value) in enumerate(row.items()):
+                cols[j].write(value)
+            
+            # Delete button in the last column
+            if cols[-1].button(f"Delete Row {i+1}", key=f"delete_{i}"):
+                st.session_state.data.pop(i)  # Delete the row
+                st.success(f"Row {i+1} deleted successfully!")
+                break  # Ensure that the deletion happens only once per button click
 
         # Add a Refresh button to manually reload the data without causing an error
         if st.button("Refresh Table"):
             # Refresh the session state data (effectively reloading the table)
             st.session_state.data = st.session_state.data[:]
             st.success("Table refreshed!")
-
-        # Delete Row functionality
-        for i, row in df.iterrows():
-            if st.button(f"Delete Row {i+1}", key=f"delete_{i}"):
-                st.session_state.data.pop(i)  # Delete the row
-                st.success(f"Row {i+1} deleted successfully!")
-                break  # Ensure that the deletion happens only once per button click
 
     # Submit button for the form
     if st.button("Submit"):
