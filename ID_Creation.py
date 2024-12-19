@@ -4,7 +4,7 @@ import re
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-import time
+import time  # Ensure this import is present
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
@@ -70,7 +70,7 @@ def show_login_page():
 
 # Function to validate email format
 def is_valid_email(email):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA0-9-]+\.[a-zA-Z0-9-.]+$)"
     return re.match(email_regex, email) is not None
 
 # Function to validate contact number (must be exactly 10 digits)
@@ -84,13 +84,6 @@ def show_form():
     # Initialize the data list if it's not already initialized
     if "data" not in st.session_state:
         st.session_state.data = []
-
-    # Check if refresh is needed based on session_state's last refresh timestamp
-    current_time = time.time()
-    if "last_refresh" not in st.session_state or current_time - st.session_state.last_refresh > 1:
-        # Update the last refresh time in session_state
-        st.session_state.last_refresh = current_time
-        st.experimental_rerun()  # Refresh page every 1 second
 
     # Department dropdown options based on process
     department_options = {
