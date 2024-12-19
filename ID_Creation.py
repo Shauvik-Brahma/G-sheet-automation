@@ -69,7 +69,7 @@ def show_login_page():
 
 # Function to validate email format
 def is_valid_email(email):
-    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA0-9-]+\.[a-zA-Z0-9-.]+$)"
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     return re.match(email_regex, email) is not None
 
 # Function to validate contact number (must be exactly 10 digits)
@@ -173,9 +173,10 @@ def show_form():
             
             # Delete button in the last column
             if cols[-1].button(f"Delete Row {i+1}", key=f"delete_{i}"):
-                st.session_state.data.pop(i)  # Delete the row
+                # Delete only the specific row that corresponds to the button pressed
+                del st.session_state.data[i]
                 st.success(f"Row {i+1} deleted successfully!")
-                break  # Ensure that the deletion happens only once per button click
+                break  # Ensure the row is deleted and iteration stops here
 
         # Add a Refresh button to manually reload the data without causing an error
         if st.button("Refresh Table"):
