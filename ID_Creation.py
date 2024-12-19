@@ -158,29 +158,23 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    # Displaying the table of all added rows
+    # Displaying the table of all added rows in tabular format
     if st.session_state.data:
         st.write("Your Input Table:")
+        
+        # Convert session state data to DataFrame for tabular display
+        df = pd.DataFrame(st.session_state.data)
 
-        # Loop over each row and display it with delete option
+        # Display the DataFrame in Streamlit
+        st.dataframe(df)
+
+        # Delete Row functionality with a button for each row
         for idx, row in enumerate(st.session_state.data):
-            col1, col2 = st.columns([5, 1])  # Create two columns: one for data, one for the delete button
-            with col1:
-                # Display row as individual columns (fields) rather than as a dict
-                st.write(f"**EMP ID**: {row['EMP ID']}")
-                st.write(f"**Agent Name**: {row['Agent Name']}")
-                st.write(f"**Contact No**: {row['Contact No']}")
-                st.write(f"**Official Email_ID**: {row['Official Email_ID']}")
-                st.write(f"**Department**: {row['Department']}")
-                st.write(f"**Trainer Name**: {row['Trainer Name']}")
-                if row.get('Designation'):
-                    st.write(f"**Designation**: {row['Designation']}")
-            with col2:
-                delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
-                if delete_button:
-                    st.session_state.data.pop(idx)
-                    st.success(f"Row {idx + 1} deleted successfully!")
-                    break  # Prevent modifying the list while iterating over it
+            delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
+            if delete_button:
+                st.session_state.data.pop(idx)
+                st.success(f"Row {idx + 1} deleted successfully!")
+                break  # Prevent modifying the list while iterating over it
 
         # Add a Refresh button to manually reload the data without causing an error
         if st.button("Refresh Table"):
