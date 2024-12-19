@@ -4,7 +4,6 @@ import re
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-import time  # Ensure this import is present
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
@@ -163,23 +162,14 @@ def show_form():
     if st.session_state.data:
         st.write("Your Input Table:")
         df = pd.DataFrame(st.session_state.data)
-        st.dataframe(df)
 
-        # Delete Row functionality
-        row_to_delete = st.number_input(
-            "Enter Row Number to Delete (1-based index):",
-            min_value=1,
-            max_value=len(df),
-            step=1,
-            key="row_to_delete"
-        )
-
-        delete_button = st.button("Delete Row", key="delete_button")
-
-        if delete_button:
-            if 1 <= row_to_delete <= len(df):
-                st.session_state.data.pop(row_to_delete - 1)
-                st.success(f"Row {row_to_delete} deleted successfully!")
+        # Display the table with a delete button for each row
+        for i, row in df.iterrows():
+            st.write(row.to_dict())  # Show the row data as a dictionary
+            if st.button(f"Delete Row {i+1}", key=f"delete_{i}"):
+                st.session_state.data.pop(i)  # Delete the row
+                st.success(f"Row {i+1} deleted successfully!")
+                break  # Ensure that the deletion happens only once per button click
 
     # Submit button for the form
     if st.button("Submit"):
