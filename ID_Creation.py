@@ -4,6 +4,7 @@ import re
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
+import time
 
 # Function to connect to Google Sheets
 def connect_to_google_sheets():
@@ -180,12 +181,6 @@ def show_form():
                 st.session_state.data.pop(row_to_delete - 1)
                 st.success(f"Row {row_to_delete} deleted successfully!")
 
-        # Add a Refresh button to manually reload the data without causing an error
-        if st.button("Refresh Table"):
-            # Refresh the session state data (effectively reloading the table)
-            st.session_state.data = st.session_state.data[:]
-            st.success("Table refreshed!")
-
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
@@ -213,6 +208,10 @@ def show_form():
             st.write(f"Collected Data: {st.session_state.data}")
         else:
             st.error("No rows to submit. Please add some rows first.")
+    
+    # Auto-refresh the page every second
+    time.sleep(1)
+    st.experimental_rerun()
 
 # Main function to control the flow of the app
 def main():
