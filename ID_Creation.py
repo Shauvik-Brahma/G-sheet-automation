@@ -72,7 +72,18 @@ def show_form():
     }
 
     st.subheader("Current Data")
-    st.dataframe(st.session_state.data)
+    if not st.session_state.data.empty:
+        for i, row in st.session_state.data.iterrows():
+            cols = st.columns(7)
+            cols[0].write(row["EMP ID"])
+            cols[1].write(row["Name"])
+            cols[2].write(row["Contact No"])
+            cols[3].write(row["Email"])
+            cols[4].write(row["Department"])
+            cols[5].write(row["Trainer"])
+            if cols[6].button("Delete", key=f"delete_{i}"):
+                st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
+                st.experimental_rerun()
 
     st.subheader("Add New Row")
     with st.form(key="add_row_form"):
@@ -95,13 +106,6 @@ def show_form():
                 new_row = {"EMP ID": emp_id, "Name": name, "Contact No": contact_no, "Email": email, "Department": department, "Trainer": trainer}
                 st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_row])], ignore_index=True)
                 st.success("Row added successfully!")
-
-    if not st.session_state.data.empty:
-        st.subheader("Delete Row")
-        row_to_delete = st.number_input("Row to Delete (0-based index):", min_value=0, max_value=len(st.session_state.data) - 1, step=1)
-        if st.button("Delete Row"):
-            st.session_state.data = st.session_state.data.drop(row_to_delete).reset_index(drop=True)
-            st.success(f"Row {row_to_delete} deleted successfully.")
 
     if st.button("Submit Data"):
         if st.session_state.data.empty:
