@@ -87,7 +87,7 @@ def show_form():
                 # Add a "Delete" button for each row
                 if cols[6].button("Delete", key=f"delete_{i}"):
                     st.session_state.data = st.session_state.data.drop(i).reset_index(drop=True)
-                    st.experimental_rerun()
+                    st.session_state.show_table = True  # Mark the table to refresh
 
         else:
             st.write("No rows added yet.")
