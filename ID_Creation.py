@@ -1,67 +1,147 @@
 import streamlit as st
 import pandas as pd
+import re
 
-# Define a simple username and password for login
-USERNAME = "admin"
-PASSWORD = "password123"
-
-# Initialize session state for data and login status if they don't exist
-if 'data' not in st.session_state:
-    st.session_state.data = []
-
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-# Add Row Functionality
-def add_row(name, age, city):
-    st.session_state.data.append([name, age, city])
-
-# Delete Row Functionality
-def delete_row(row_to_delete):
-    if 1 <= row_to_delete <= len(st.session_state.data):
-        st.session_state.data.pop(row_to_delete - 1)
-        return True
-    return False
-
-# Login Page Functionality
-def login_page():
+# Function to display login page with "Center" dropdown
+def show_login_page():
     st.title("Login Page")
+    
+    # Username and password input fields
+    username = st.text_input("Username")
+    password = st.text_input("Password", type='password')
+    
+    # Center dropdown for selection
+    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS",
+                                            "BHOPAL-TTBS", "RANCHI-AYUDA","BHOPAL-MGM","COIM-HRHNXT"
+                                            ,"NOIDA-ICCS", "HYD-CORPONE", "VIJAYAWADA-TTBS"])
+    
+    # Employee Type dropdown
+    employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
 
-    # Input fields for username and password
-    username = st.text_input("Username:")
-    password = st.text_input("Password:", type="password")
+    # Conditional Process dropdown based on Employee Type and Center
+    process = st.selectbox("Select Process", ["Collection", "Non_Collection", "Customer Support"])
 
-    # Check login button
+    Batch_No = st.text_input("Batch No:")
+
+    # Login button
     if st.button("Login"):
-        if username == USERNAME and password == PASSWORD:
+        # Check if the Batch No is provided
+        if not Batch_No:
+            st.error("Please enter a Batch No!")
+        elif username == "admin" and password == "admin":  # Simple login check
             st.session_state.logged_in = True
-            st.success("Login successful!")
+            st.session_state.username = username
+            st.session_state.center = center  # Store selected center in session state
+            st.session_state.employee_type = employee_type  # Store selected employee type
+            st.session_state.process = process  # Store selected process in session state
+            st.session_state.Batch_No = Batch_No
+            st.session_state.form_displayed = True  # Flag to track whether form is displayed
+            st.session_state.data = []  # Initialize the list to hold the form data
         else:
-            st.error("Invalid username or password.")
+            st.error("Invalid username or password")
 
-# Streamlit Data Entry and Management Page
-def data_management_page():
-    st.title("Data Entry and Management")
+# Function to validate email format
+def is_valid_email(email):
+    email_regex = r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    return re.match(email_regex, email) is not None
 
-    # Add Row Form
-    with st.form(key="data_entry_form"):
-        name = st.text_input("Enter your name:")
-        age = st.number_input("Enter your age:", min_value=1)
-        city = st.text_input("Enter your city:")
+# Function to validate contact number (must be exactly 10 digits)
+def is_valid_contact_number(contact_number):
+    return contact_number.isdigit() and len(contact_number) == 10
 
-        # Submit button to add a new row
-        submit_button = st.form_submit_button("Add Row")
-        if submit_button:
-            if name and city:  # Ensure data is not empty
-                add_row(name, age, city)
-                st.success(f"Row with Name: {name}, Age: {age}, City: {city} added successfully!")
+# Function to display the form after login
+def show_form():
+    st.title("Fill the Form")
+
+    # Initialize the data list if it's not already initialized
+    if "data" not in st.session_state:
+        st.session_state.data = []
+
+    # Department dropdown options based on process
+    department_options = {
+        "Collection": ["Consent", "LROD", "Collection"],
+        "Non_Collection": ["SE_Onbording", "ST_Onbording", "SIB_Onbording", "SIC_Onbording" , "SE_Credit check" , "SIC_Credit check","GRO inbound","V_KYC","Risk"
+                          ,"SIB_Credit check", "ST_Credit check","CC_NO_Loan","CC_Initiator_SIC","CC_Initiator_Student","CC_Initiator_SE","CC_Initiator_SIB","RRR"],
+        "Customer Support": ["Email"]
+    }
+
+    # Display and manage rows for specific centers
+    if st.session_state.center == "KOLKATA":
+        # Specific form for Kolkata
+        emp_id = st.text_input("EMP ID", key="emp_id")
+        agent_name = st.text_input("Agent Name", key="agent_name")
+        contact_no = st.text_input("Contact No:", key="contact_no")
+        official_email = st.text_input("Official Email_ID:", key="official_email")
+        
+        # Dynamically show department options based on the selected process
+        department = st.selectbox("Department Name:", department_options[st.session_state.process])
+        
+        trainer_name = st.text_input("Trainer Name:", key="trainer_name")
+
+        # Add a 'Designation' field if Employee Type is SLT
+        if st.session_state.employee_type == "SLT":
+            designation = st.text_input("Designation:", key="designation")
+        else:
+            designation = None  # Skip the designation field for other employee types
+
+        # Add Row functionality
+        if st.button("Add Row", key="add_row"):
+            # Validate inputs before adding a new row
+            if not emp_id or not agent_name or not contact_no or not official_email or not department or not trainer_name:
+                st.error("Please fill in all fields!")
+            elif not is_valid_email(official_email):
+                st.error("Please enter a valid email address.")
+            elif not is_valid_contact_number(contact_no):
+                st.error("Contact number must be 10 digits.")
+            elif st.session_state.employee_type == "SLT" and not designation:
+                st.error("Please enter the Designation for SLT employees.")
             else:
-                st.error("Please fill all fields.")
+                new_row = {
+                    "EMP ID": emp_id,
+                    "Agent Name": agent_name,
+                    "Contact No": contact_no,
+                    "Official Email_ID": official_email,
+                    "Department": department,
+                    "Trainer Name": trainer_name,
+                    "Designation": designation if designation else ""  # Include designation if provided
+                }
+                st.session_state.data.append(new_row)
+                st.success("Row added successfully!")
+
+    else:
+        # Form for other centers
+        emp_id = st.text_input("EMP ID", key="emp_id")
+        candidate_name = st.text_input("Candidate Name", key="candidate_name")
+        mobile_no = st.text_input("Mobile No.", key="mobile_no")
+        mail_id = st.text_input("Mail ID", key="mail_id")
+        process_name = st.text_input("Process Name", key="process_name")
+        trainer = st.text_input("Trainer", key="trainer")
+
+        # Add Row functionality
+        if st.button("Add Row", key="add_row"):
+            # Validate inputs before adding a new row
+            if not emp_id or not candidate_name or not mobile_no or not mail_id or not process_name or not trainer:
+                st.error("Please fill in all fields!")
+            elif not is_valid_email(mail_id):
+                st.error("Please enter a valid email address.")
+            elif not is_valid_contact_number(mobile_no):
+                st.error("Mobile number must be 10 digits.")
+            else:
+                new_row = {
+                    "EMP ID": emp_id,
+                    "Candidate Name": candidate_name,
+                    "Mobile No": mobile_no,
+                    "Mail ID": mail_id,
+                    "Process Name": process_name,
+                    "Trainer": trainer
+                }
+                st.session_state.data.append(new_row)
+                st.success("Row added successfully!")
 
     # Displaying the table of all added rows
     if st.session_state.data:
         st.write("Your Input Table:")
-        df = pd.DataFrame(st.session_state.data, columns=["Name", "Age", "City"])
+        df = pd.DataFrame(st.session_state.data)
         st.dataframe(df)
 
         # Delete Row functionality
@@ -73,17 +153,15 @@ def data_management_page():
             key="row_to_delete"  # Unique key for this widget
         )
 
-        # Delete row button
-        delete_button = st.button("Delete Row", key="delete_button")
+        # Only delete when the "Delete Row" button is pressed
+        delete_button = st.button("Delete Row", key="delete_button")  # Unique key for delete button
 
         if delete_button:
-            # Ensure the row number is valid and delete the row
-            if delete_row(row_to_delete):
+            # Ensure the row number is within valid range and delete the row
+            if 1 <= row_to_delete <= len(df):
+                st.session_state.data.pop(row_to_delete - 1)
                 st.success(f"Row {row_to_delete} deleted successfully!")
-            else:
-                st.error("Invalid row number. Please try again.")
-    else:
-        st.write("No data available yet.")
+                # The table should refresh automatically after this, as the state is updated.
 
     # Submit button for the form
     if st.button("Submit"):
@@ -94,10 +172,17 @@ def data_management_page():
         else:
             st.error("No rows to submit. Please add some rows first.")
 
-# Main Application Logic
-if not st.session_state.logged_in:
-    # If not logged in, show the login page
-    login_page()
-else:
-    # If logged in, show the data management page
-    data_management_page()
+# Main function to control the flow of the app
+def main():
+    # Initialize session state if not already initialized
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+        st.session_state.form_displayed = False  # Ensure form is not displayed by default
+
+    if not st.session_state.logged_in:
+        show_login_page()  # Show login page if not logged in
+    else:
+        show_form()  # Show the form after login
+
+if __name__ == "__main__":
+    main()
