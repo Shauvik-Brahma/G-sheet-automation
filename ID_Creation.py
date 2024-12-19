@@ -85,6 +85,13 @@ def show_form():
     if "data" not in st.session_state:
         st.session_state.data = []
 
+    # Check if refresh is needed based on session_state's last refresh timestamp
+    current_time = time.time()
+    if "last_refresh" not in st.session_state or current_time - st.session_state.last_refresh > 1:
+        # Update the last refresh time in session_state
+        st.session_state.last_refresh = current_time
+        st.experimental_rerun()  # Refresh page every 1 second
+
     # Department dropdown options based on process
     department_options = {
         "Collection": ["Consent", "LROD", "Collection"],
@@ -208,10 +215,6 @@ def show_form():
             st.write(f"Collected Data: {st.session_state.data}")
         else:
             st.error("No rows to submit. Please add some rows first.")
-    
-    # Auto-refresh the page every second
-    time.sleep(1)
-    st.experimental_rerun()
 
 # Main function to control the flow of the app
 def main():
