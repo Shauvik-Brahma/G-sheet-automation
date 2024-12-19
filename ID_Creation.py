@@ -14,10 +14,21 @@ def authenticate_google_sheets():
 # Function to get the specific Google Sheet based on the selected center
 def get_sheet_data(sheet_name):
     client = authenticate_google_sheets()
-    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0#gid=0")
+    sheet = client.open_by_url("YOUR_GOOGLE_SHEET_URL")
     worksheet = sheet.worksheet(sheet_name)  # Access the respective sheet (either Kolkata or Partner)
     data = worksheet.get_all_records()  # Get all records from the sheet
     return pd.DataFrame(data)
+
+# Function to update the Google Sheet with the collected data
+def update_sheet(sheet_name):
+    client = authenticate_google_sheets()
+    sheet = client.open_by_url("YOUR_GOOGLE_SHEET_URL")
+    worksheet = sheet.worksheet(sheet_name)  # Access the respective sheet (either Kolkata or Partner)
+    data = st.session_state.data
+    # Insert data to the sheet
+    for row in data:
+        worksheet.append_row(list(row.values()))  # Append row to the sheet
+    st.success(f"Data successfully added to the {sheet_name} sheet!")
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
@@ -27,11 +38,10 @@ def show_login_page():
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
     
-    # Center dropdown for selection (all centers, excluding Kolkata will be treated as Partner)
-    all_centers = ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS", "BHOPAL-TTBS", "RANCHI-AYUDA", 
-                   "BHOPAL-MGM", "COIM-HRHNXT", "NOIDA-ICCS", "HYD-CORPONE", "VIJAYAWADA-TTBS"]
-    
-    center = st.selectbox("Select Center", all_centers)
+    # Center dropdown for selection
+    center = st.selectbox("Select Center", ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS",
+                                            "BHOPAL-TTBS", "RANCHI-AYUDA","BHOPAL-MGM","COIM-HRHNXT"
+                                            ,"NOIDA-ICCS", "HYD-CORPONE" , "VIJAYAWADA-TTBS" ])
     
     # Employee Type dropdown
     employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
@@ -83,7 +93,7 @@ def show_form():
         "Customer Support": ["Email"]
     }
 
-    # Display and manage rows based on center (either Kolkata or Partner)
+    # Display and manage rows
     if st.session_state.center == "KOLKATA":
         # Specific form for Kolkata
         emp_id = st.text_input("EMP ID", key="emp_id")
@@ -127,7 +137,7 @@ def show_form():
                 st.success("Row added successfully!")
 
     else:
-        # Form for Partner (for any center other than Kolkata)
+        # Form for other centers
         emp_id = st.text_input("EMP ID", key="emp_id")
         candidate_name = st.text_input("Candidate Name", key="candidate_name")
         mobile_no = st.text_input("Mobile No.", key="mobile_no")
@@ -193,20 +203,6 @@ def show_form():
             else:
                 sheet = "Partner"
             update_sheet(sheet)  # Update the sheet with the form data
-
-        else:
-            st.error("No rows to submit. Please add some rows first.")
-
-# Function to update the Google Sheet with the collected data
-def update_sheet(sheet_name):
-    client = authenticate_google_sheets()
-    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0#gid=0")
-    worksheet = sheet.worksheet(sheet_name)  # Access the respective sheet (either Kolkata or Partner)
-    data = st.session_state.data
-    # Insert data to the sheet
-    for row in data:
-        worksheet.append_row(list(row.values()))  # Append row to the sheet
-    st.success(f"Data successfully added to the {sheet_name} sheet!")
 
 # Main function to control the flow of the app
 def main():
