@@ -1,6 +1,22 @@
 import streamlit as st
 import pandas as pd
 import re
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Google Sheets API authentication function
+def authenticate_google_sheets():
+    # Define the scope
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    
+    # Authenticate using the service account credentials file
+    creds = ServiceAccountCredentials.from_json_keyfile_name("path/to/your/credentials.json", scope)
+    client = gspread.authorize(creds)
+    
+    # Open the sheet by its URL and select the "Kolkata" sheet
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0")
+    worksheet = sheet.worksheet("Kolkata")
+    return worksheet
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
@@ -132,6 +148,12 @@ def show_form():
     # Submit button for the form
     if st.button("Submit"):
         if st.session_state.data:
+            worksheet = authenticate_google_sheets()  # Get the worksheet connection
+
+            # Add data to the sheet (assuming first row contains headers)
+            for row in st.session_state.data:
+                worksheet.append_row(list(row.values()))  # Convert row dict to list and append
+
             st.write("Form submitted successfully!")
             # Process the form data here as needed
             st.write(f"Collected Data: {st.session_state.data}")
