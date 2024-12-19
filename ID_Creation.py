@@ -138,6 +138,11 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
+    # Add a Refresh Button to reset the table
+    if st.button("Refresh Data"):
+        st.session_state.data = []
+        st.experimental_rerun()  # Refresh the app
+
     # Displaying the table of all added rows with "Delete" option on the right side of each row
     if st.session_state.data:
         st.write("Your Input Table:")
