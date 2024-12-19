@@ -1,77 +1,70 @@
 import streamlit as st
-import gspread
-from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
+import pandas as pd
 
-# Simple username and password for login
-USERNAME = "admin"
-PASSWORD = "password123"
+# Initialize session state for data if it doesn't exist
+if 'data' not in st.session_state:
+    st.session_state.data = []
 
-# Authenticate with Google Sheets using Streamlit secrets
-def authenticate_gspread():
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    
-    client = gspread.authorize(creds)
-    return client
+# Add Row Functionality
+def add_row(name, age, city):
+    st.session_state.data.append([name, age, city])
 
-# Append data to Google Sheets
-def append_to_sheet(data):
-    client = authenticate_gspread()
-    
-    # Open the Google Sheet using its URL
-    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0#gid=0")
-    
-    # Select the "Kolkata" sheet
-    worksheet = sheet.worksheet("Kolkata")
-    
-    # Append the data as a new row
-    worksheet.append_row(data)
+# Delete Row Functionality
+def delete_row(row_to_delete):
+    if 1 <= row_to_delete <= len(st.session_state.data):
+        st.session_state.data.pop(row_to_delete - 1)
+        return True
+    return False
 
-# Streamlit Login Page
-def login_page():
-    st.title("Login Page")
+# Streamlit form for adding a new row
+st.title("Data Entry and Management")
 
-    # Input fields for username and password
-    username = st.text_input("Username:")
-    password = st.text_input("Password:", type="password")
+with st.form(key="data_entry_form"):
+    name = st.text_input("Enter your name:")
+    age = st.number_input("Enter your age:", min_value=1)
+    city = st.text_input("Enter your city:")
 
-    # Check login button
-    if st.button("Login"):
-        if username == USERNAME and password == PASSWORD:
-            # Set session state to indicate successful login
-            st.session_state.logged_in = True
-            st.success("Login successful!")
+    # Submit button to add a new row
+    submit_button = st.form_submit_button("Add Row")
+    if submit_button:
+        if name and city:  # Ensure data is not empty
+            add_row(name, age, city)
+            st.success(f"Row with Name: {name}, Age: {age}, City: {city} added successfully!")
         else:
-            st.error("Invalid username or password.")
+            st.error("Please fill all fields.")
 
-# Streamlit Data Entry Form Page
-def data_entry_page():
-    st.title("Data Entry for Kolkata Sheet")
+# Displaying the table of all added rows
+if st.session_state.data:
+    st.write("Your Input Table:")
+    df = pd.DataFrame(st.session_state.data, columns=["Name", "Age", "City"])
+    st.dataframe(df)
 
-    with st.form(key="data_entry_form"):
-        name = st.text_input("Enter your name:")
-        age = st.number_input("Enter your age:", min_value=1)
-        city = st.text_input("Enter your city:")
+    # Delete Row functionality
+    row_to_delete = st.number_input(
+        "Enter Row Number to Delete (1-based index):",
+        min_value=1,
+        max_value=len(df),
+        step=1,
+        key="row_to_delete"  # Unique key for this widget
+    )
 
-        # Submit button
-        submit_button = st.form_submit_button("Submit")
-        
-        if submit_button:
-            if name and city:  # Ensure data is not empty
-                # Data to append to the sheet
-                data = [name, age, city]
-                append_to_sheet(data)
-                st.success("Data has been successfully added to the sheet!")
-            else:
-                st.error("Please fill all fields.")
+    # Delete row button
+    delete_button = st.button("Delete Row", key="delete_button")
 
-# Main Application Logic
-if 'logged_in' not in st.session_state or not st.session_state.logged_in:
-    # If not logged in, show the login page
-    login_page()
+    if delete_button:
+        # Ensure the row number is valid and delete the row
+        if delete_row(row_to_delete):
+            st.success(f"Row {row_to_delete} deleted successfully!")
+        else:
+            st.error("Invalid row number. Please try again.")
 else:
-    # If logged in, show the data entry form page
-    data_entry_page()
+    st.write("No data available yet.")
+
+# Submit button for the form
+if st.button("Submit"):
+    if st.session_state.data:
+        st.write("Form submitted successfully!")
+        # Process the form data here as needed
+        st.write(f"Collected Data: {st.session_state.data}")
+    else:
+        st.error("No rows to submit. Please add some rows first.")
