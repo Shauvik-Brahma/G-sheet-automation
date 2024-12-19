@@ -27,8 +27,11 @@ def show_login_page():
     username = st.text_input("Username")
     password = st.text_input("Password", type='password')
     
-    # Center dropdown for selection (Kolkata or Partner)
-    center = st.selectbox("Select Center", ["KOLKATA", "PARTNER"])
+    # Center dropdown for selection (all centers, excluding Kolkata will be treated as Partner)
+    all_centers = ["KOLKATA", "INDORE-TARUS", "MYSORE-TTBS", "BHOPAL-TTBS", "RANCHI-AYUDA", 
+                   "BHOPAL-MGM", "COIM-HRHNXT", "NOIDA-ICCS", "HYD-CORPONE", "VIJAYAWADA-TTBS"]
+    
+    center = st.selectbox("Select Center", all_centers)
     
     # Employee Type dropdown
     employee_type = st.selectbox("Select Employee Type", ["SLT", "DCS"])
@@ -123,8 +126,8 @@ def show_form():
                 st.session_state.data.append(new_row)
                 st.success("Row added successfully!")
 
-    elif st.session_state.center == "PARTNER":
-        # Form for Partner
+    else:
+        # Form for Partner (for any center other than Kolkata)
         emp_id = st.text_input("EMP ID", key="emp_id")
         candidate_name = st.text_input("Candidate Name", key="candidate_name")
         mobile_no = st.text_input("Mobile No.", key="mobile_no")
