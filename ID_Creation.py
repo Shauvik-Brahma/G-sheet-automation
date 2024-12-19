@@ -21,17 +21,6 @@ def is_valid_email(email):
 def is_valid_contact_number(contact_number):
     return contact_number.isdigit() and len(contact_number) == 10
 
-# Function to save data to Google Sheets
-def save_to_google_sheets(data):
-    client = connect_to_google_sheets()
-    if st.session_state.center == "KOLKATA":
-        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Kolkata")
-    else:
-        sheet = client.open_by_key("1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE").worksheet("Partner")
-
-    for _, row in data.iterrows():
-        sheet.append_row(row.values.tolist())
-
 # Function to display login page with "Center" dropdown
 def show_login_page():
     st.title("Login Page")
@@ -77,7 +66,6 @@ def show_login_page():
                 "Process": process,
                 "Batch No": Batch_No
             }
-            st.success("Login successful!")
         else:
             st.error("Invalid username or password")
 
@@ -177,14 +165,23 @@ def show_form():
         st.dataframe(df)
 
         # Delete Row functionality
-        for i, row in df.iterrows():
-            cols = st.columns(len(row)+1)  # Create columns for each row
-            for j, col_name in enumerate(row.index):
-                cols[j].write(row[col_name])  # Display data
-            # Delete button
-            if cols[-1].button("Delete", key=f"delete_{i}"):
-                st.session_state.data = [r for idx, r in enumerate(st.session_state.data) if idx != i]
-                st.success(f"Row {i+1} deleted successfully!")
+        row_to_delete = st.number_input(
+            "Enter Row Number to Delete (1-based index):",
+            min_value=1,
+            max_value=len(df),
+            step=1,
+            key="row_to_delete"  # Unique key for this widget
+        )
+
+        # Only delete when the "Delete Row" button is pressed
+        delete_button = st.button("Delete Row", key="delete_button")  # Unique key for delete button
+
+        if delete_button:
+            # Ensure the row number is within valid range and delete the row
+            if 1 <= row_to_delete <= len(df):
+                st.session_state.data.pop(row_to_delete - 1)
+                st.success(f"Row {row_to_delete} deleted successfully!")
+                # The table should refresh automatically after this, as the state is updated.
 
     # Submit button for the form
     if st.button("Submit"):
