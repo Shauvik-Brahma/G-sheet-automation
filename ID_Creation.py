@@ -4,31 +4,32 @@ import re
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Function to authenticate and get the Google Sheets client
-def authenticate_google_sheets():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(st.secrets["gcp_service_account"], scope)
+# Function to authenticate and connect to Google Sheets
+def connect_to_gsheet():
+    # Use the service account credentials to authenticate
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("path/to/your/credentials.json", scope)
     client = gspread.authorize(creds)
-    return client
+    
+    # Open the spreadsheet by its URL
+    spreadsheet_url = "https://docs.google.com/spreadsheets/d/1Rrxrjo_id38Rpl1H7Vq30ZsxxjUOvWiFQhfexn-LJlE/edit?gid=0"
+    sheet = client.open_by_url(spreadsheet_url)
+    
+    return sheet
 
-# Function to get the specific Google Sheet based on the selected center
-def get_sheet_data(sheet_name):
-    client = authenticate_google_sheets()
-    sheet = client.open_by_url("YOUR_GOOGLE_SHEET_URL")
-    worksheet = sheet.worksheet(sheet_name)  # Access the respective sheet (either Kolkata or Partner)
-    data = worksheet.get_all_records()  # Get all records from the sheet
-    return pd.DataFrame(data)
+# Function to update the sheet with form data
+def update_sheet(data):
+    sheet = connect_to_gsheet()
+    
+    # Select the sheet based on the center
+    if st.session_state.center == "KOLKATA":
+        worksheet = sheet.worksheet("Kolkata")
+    else:
+        worksheet = sheet.worksheet("Partner")
 
-# Function to update the Google Sheet with the collected data
-def update_sheet(sheet_name):
-    client = authenticate_google_sheets()
-    sheet = client.open_by_url("YOUR_GOOGLE_SHEET_URL")
-    worksheet = sheet.worksheet(sheet_name)  # Access the respective sheet (either Kolkata or Partner)
-    data = st.session_state.data
-    # Insert data to the sheet
+    # Add the form data to the selected worksheet
     for row in data:
-        worksheet.append_row(list(row.values()))  # Append row to the sheet
-    st.success(f"Data successfully added to the {sheet_name} sheet!")
+        worksheet.append_row(list(row.values()))
 
 # Function to display login page with "Center" dropdown
 def show_login_page():
@@ -195,14 +196,11 @@ def show_form():
     if st.button("Submit"):
         if st.session_state.data:
             st.write("Form submitted successfully!")
-            # Process the form data here as needed
+            # Update the Google Sheet with the form data
+            update_sheet(st.session_state.data)
             st.write(f"Collected Data: {st.session_state.data}")
-            # Upload the data to the respective sheet based on the center
-            if st.session_state.center == "KOLKATA":
-                sheet = "Kolkata"
-            else:
-                sheet = "Partner"
-            update_sheet(sheet)  # Update the sheet with the form data
+        else:
+            st.error("No rows to submit. Please add some rows first.")
 
 # Main function to control the flow of the app
 def main():
