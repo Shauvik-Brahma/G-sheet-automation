@@ -170,6 +170,7 @@ def show_form():
 
         # Delete Row functionality with a button for each row
         for idx, row in enumerate(st.session_state.data):
+            # Using a container for each row with delete button
             delete_button = st.button(f"Delete Row {idx + 1}", key=f"delete_{idx}")
             if delete_button:
                 st.session_state.data.pop(idx)
